@@ -1,0 +1,18 @@
+[project]
+name = "retail-store-device-map"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.61.0",
+    "flask>=3.1.1",
+    "google-generativeai>=0.8.5",
+    "matplotlib>=3.10.5",
+    "numpy>=2.2.6",
+    "openai>=1.99.1",
+    "opencv-python>=4.11.0.86",
+    "pandas>=2.3.1",
+    "pillow>=11.3.0",
+    "pytesseract>=0.3.13",
+]

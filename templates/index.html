@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Device Mapping Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .control-btn {
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        select, input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-input {
+            width: 300px;
+        }
+        
+        .results-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .image-container {
+            position: relative;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+        
+        .result-image {
+            max-width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+        }
+        
+        .no-image {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .result-info {
+            padding: 20px;
+        }
+        
+        .store-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .device-id {
+            font-size: 1.3em;
+            font-weight: bold;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .device-id.success {
+            background: #e8f5e8;
+            color: #2d8c3a;
+            border: 2px solid #a5d6a7;
+        }
+        
+        .device-id.failed {
+            background: #fdeaea;
+            color: #d32f2f;
+            border: 2px solid #ffcdd2;
+        }
+        
+        .extracted-text {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        
+        .metadata {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .confidence {
+            font-weight: bold;
+        }
+        
+        .confidence.high { color: #4caf50; }
+        .confidence.medium { color: #ff9800; }
+        .confidence.low { color: #f44336; }
+        
+        .quality-flag {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        
+        .quality-flag.manually-corrected {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .edit-section {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .edit-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .edit-input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 120px;
+        }
+        
+        .edit-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .edit-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-btn.save {
+            background: #28a745;
+            color: white;
+        }
+        
+        .edit-btn.save:hover {
+            background: #218838;
+        }
+        
+        .edit-btn.cancel {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .edit-btn.cancel:hover {
+            background: #5a6268;
+        }
+        
+        .edit-btn.mark-failed {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .edit-btn.mark-failed:hover {
+            background: #c82333;
+        }
+        
+        .edit-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+        
+        .pagination button {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination .current-page {
+            background: #667eea;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .loading::after {
+            content: '';
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0%, 33% { content: '.'; }
+            34%, 66% { content: '..'; }
+            67%, 100% { content: '...'; }
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                justify-content: space-between;
+            }
+            
+            .search-input {
+                width: 100%;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏪 Store Device Mapping Visualizer</h1>
+        <p>Review OCR results with original images</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.total_images }}</div>
+            <div class="stat-label">Total Images</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.successful_extractions }}</div>
+            <div class="stat-label">Successful Extractions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.success_rate }}</div>
+            <div class="stat-label">Success Rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.flagged_for_review }}</div>
+            <div class="stat-label">Flagged for Review</div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="filter-group">
+            <label>📁 Dataset:</label>
+            <select id="fileSelect">
+                <option value="">Loading...</option>
+            </select>
+            <button id="refreshFiles" class="control-btn">🔄</button>
+        </div>
+        
+        <div class="filter-group">
+            <label>Filter:</label>
+            <select id="filterSelect">
+                <option value="all">All Results</option>
+                <option value="successful">Successful Only</option>
+                <option value="flagged">Flagged for Review</option>
+                <option value="failed">Failed Extractions</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label>Per Page:</label>
+            <select id="perPageSelect">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label>Search:</label>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search store number, device ID, or filename...">
+        </div>
+    </div>
+    
+    <div class="results-container">
+        <div id="resultsGrid" class="results-grid">
+            <div class="loading">Loading results</div>
+        </div>
+        
+        <div id="pagination" class="pagination"></div>
+    </div>
+    
+    <script>
+        class Visualizer {
+            constructor() {
+                this.currentPage = 1;
+                this.currentFilter = 'all';
+                this.currentSearch = '';
+                this.perPage = 20;
+                
+                this.initializeEventListeners();
+                this.loadAvailableFiles();
+                this.loadResults();
+            }
+            
+            initializeEventListeners() {
+                document.getElementById('fileSelect').addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        this.switchFile(e.target.value);
+                    }
+                });
+                
+                document.getElementById('refreshFiles').addEventListener('click', () => {
+                    this.loadAvailableFiles();
+                });
+                
+                document.getElementById('filterSelect').addEventListener('change', (e) => {
+                    this.currentFilter = e.target.value;
+                    this.currentPage = 1;
+                    this.loadResults();
+                });
+                
+                document.getElementById('perPageSelect').addEventListener('change', (e) => {
+                    this.perPage = parseInt(e.target.value);
+                    this.currentPage = 1;
+                    this.loadResults();
+                });
+                
+                const searchInput = document.getElementById('searchInput');
+                let searchTimeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        this.currentSearch = e.target.value;
+                        this.currentPage = 1;
+                        this.loadResults();
+                    }, 500); // Debounce search
+                });
+            }
+            
+            async loadResults() {
+                const resultsGrid = document.getElementById('resultsGrid');
+                resultsGrid.innerHTML = '<div class="loading">Loading results</div>';
+                
+                try {
+                    const response = await fetch(`/api/results?filter=${this.currentFilter}&search=${encodeURIComponent(this.currentSearch)}&page=${this.currentPage}&per_page=${this.perPage}`);
+                    const data = await response.json();
+                    
+                    this.renderResults(data.results);
+                    this.renderPagination(data);
+                } catch (error) {
+                    console.error('Error loading results:', error);
+                    resultsGrid.innerHTML = '<div class="loading">Error loading results</div>';
+                }
+            }
+            
+            renderResults(results) {
+                const resultsGrid = document.getElementById('resultsGrid');
+                
+                if (results.length === 0) {
+                    resultsGrid.innerHTML = '<div class="loading">No results found</div>';
+                    return;
+                }
+                
+                resultsGrid.innerHTML = results.map(result => this.createResultCard(result)).join('');
+            }
+            
+            createResultCard(result) {
+                const hasDeviceId = result.device_id && result.device_id !== 'null' && result.device_id !== null;
+                const deviceIdClass = hasDeviceId ? 'success' : 'failed';
+                const deviceIdText = hasDeviceId ? result.device_id : 'No device ID found';
+                
+                const confidenceClass = result.ocr_confidence >= 80 ? 'high' : 
+                                      result.ocr_confidence >= 50 ? 'medium' : 'low';
+                
+                const imageHtml = result.image_data ? 
+                    `<img src="${result.image_data}" alt="Store ${result.store_number}" class="result-image">` :
+                    '<div class="no-image">Image not available</div>';
+                
+                const qualityFlagClass = result.quality_flag === 'MANUALLY_CORRECTED' ? 'manually-corrected' : '';
+                const cardId = `card-${result.filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                
+                return `
+                    <div class="result-card" id="${cardId}">
+                        <div class="image-container">
+                            ${imageHtml}
+                        </div>
+                        <div class="result-info">
+                            <div class="store-number">Store #${result.store_number}</div>
+                            <div class="device-id ${deviceIdClass}">${deviceIdText}</div>
+                            <div class="extracted-text">${result.extracted_text || 'No text extracted'}</div>
+                            <div class="metadata">
+                                <span class="confidence ${confidenceClass}">Confidence: ${result.ocr_confidence}%</span>
+                                <span class="filename">${result.filename.substring(0, 30)}...</span>
+                            </div>
+                            ${result.quality_flag !== 'OK' ? `<div class="quality-flag ${qualityFlagClass}">${result.quality_flag}</div>` : ''}
+                            
+                            <div class="edit-section" id="edit-${result.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+                                <div class="edit-label">Quick Edit:</div>
+                                <div class="edit-controls">
+                                    <input type="text" class="edit-input" id="input-${result.filename.replace(/[^a-zA-Z0-9]/g, '_')}" 
+                                           value="${hasDeviceId ? result.device_id : ''}" 
+                                           placeholder="Enter device ID (e.g., 123456G)" 
+                                           pattern="[0-9]{6}[GN]"
+                                           title="6 digits followed by G or N">
+                                    <button class="edit-btn save" data-filename="${result.filename}" onclick="visualizer.saveEdit(this.getAttribute('data-filename'))">
+                                        💾 Save
+                                    </button>
+                                    <button class="edit-btn mark-failed" data-filename="${result.filename}" onclick="visualizer.markAsFailed(this.getAttribute('data-filename'))">
+                                        ❌ Failed
+                                    </button>
+                                </div>
+                                <div id="message-${result.filename.replace(/[^a-zA-Z0-9]/g, '_')}"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderPagination(data) {
+                const pagination = document.getElementById('pagination');
+                
+                if (data.total_pages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+                
+                let paginationHtml = '';
+                
+                // Previous button
+                paginationHtml += `<button ${data.current_page <= 1 ? 'disabled' : ''} onclick="visualizer.goToPage(${data.current_page - 1})">← Previous</button>`;
+                
+                // Page numbers
+                for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.total_pages, data.current_page + 2); i++) {
+                    const isCurrentPage = i === data.current_page;
+                    paginationHtml += `<button class="${isCurrentPage ? 'current-page' : ''}" onclick="visualizer.goToPage(${i})">${i}</button>`;
+                }
+                
+                // Next button
+                paginationHtml += `<button ${data.current_page >= data.total_pages ? 'disabled' : ''} onclick="visualizer.goToPage(${data.current_page + 1})">Next →</button>`;
+                
+                // Page info
+                paginationHtml += `<span style="margin-left: 20px;">Page ${data.current_page} of ${data.total_pages} (${data.total_items} total items)</span>`;
+                
+                pagination.innerHTML = paginationHtml;
+            }
+            
+            goToPage(page) {
+                this.currentPage = page;
+                this.loadResults();
+            }
+            
+            clearMessage(filename) {
+                const messageId = `message-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const messageDiv = document.getElementById(messageId);
+                if (messageDiv) {
+                    messageDiv.innerHTML = '';
+                }
+            }
+            
+            async saveEdit(filename) {
+                const inputId = `input-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const messageId = `message-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const input = document.getElementById(inputId);
+                const messageDiv = document.getElementById(messageId);
+                
+                const deviceId = input.value.trim();
+                
+                // Validate format
+                if (deviceId && !(/^[0-9]{6}[GN]$/.test(deviceId))) {
+                    messageDiv.innerHTML = '<div class="error-message">Device ID must be 6 digits followed by G or N</div>';
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            filename: filename,
+                            device_id: deviceId
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        messageDiv.innerHTML = '<div class="success-message">✅ Saved!</div>';
+                        input.value = deviceId; // Keep the corrected value in the field
+                        
+                        // Update the card display without full reload
+                        this.updateCardDisplay(filename, deviceId, 'MANUALLY_CORRECTED');
+                        
+                        setTimeout(() => {
+                            messageDiv.innerHTML = '';
+                        }, 2000);
+                    } else {
+                        messageDiv.innerHTML = `<div class="error-message">❌ ${result.error}</div>`;
+                    }
+                } catch (error) {
+                    messageDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
+                }
+            }
+            
+            async markAsFailed(filename) {
+                const messageId = `message-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const messageDiv = document.getElementById(messageId);
+                
+                try {
+                    const response = await fetch('/api/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            filename: filename,
+                            device_id: '' // Empty string marks as failed
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        messageDiv.innerHTML = '<div class="success-message">✅ Marked as failed!</div>';
+                        
+                        // Update the card display without full reload
+                        this.updateCardDisplay(filename, null, 'MANUALLY_MARKED_FAILED');
+                        
+                        setTimeout(() => {
+                            messageDiv.innerHTML = '';
+                        }, 2000);
+                    } else {
+                        messageDiv.innerHTML = `<div class="error-message">❌ ${result.error}</div>`;
+                    }
+                } catch (error) {
+                    messageDiv.innerHTML = `<div class="error-message">❌ Error: ${error.message}</div>`;
+                }
+            }
+            
+            updateCardDisplay(filename, deviceId, qualityFlag) {
+                const cardId = `card-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const card = document.getElementById(cardId);
+                
+                if (!card) return;
+                
+                // Update device ID display
+                const deviceIdElement = card.querySelector('.device-id');
+                if (deviceId) {
+                    deviceIdElement.textContent = deviceId;
+                    deviceIdElement.className = 'device-id success';
+                } else {
+                    deviceIdElement.textContent = 'No device ID found';
+                    deviceIdElement.className = 'device-id failed';
+                }
+                
+                // Update quality flag
+                let qualityFlagElement = card.querySelector('.quality-flag');
+                if (qualityFlag && qualityFlag !== 'OK') {
+                    if (!qualityFlagElement) {
+                        // Create quality flag element if it doesn't exist
+                        qualityFlagElement = document.createElement('div');
+                        qualityFlagElement.className = 'quality-flag';
+                        const metadata = card.querySelector('.metadata');
+                        metadata.parentNode.insertBefore(qualityFlagElement, metadata.nextSibling);
+                    }
+                    qualityFlagElement.textContent = qualityFlag;
+                    qualityFlagElement.className = qualityFlag === 'MANUALLY_CORRECTED' ? 
+                        'quality-flag manually-corrected' : 'quality-flag';
+                } else if (qualityFlagElement) {
+                    qualityFlagElement.remove();
+                }
+                
+                // Update input field
+                const inputId = `input-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const inputElement = document.getElementById(inputId);
+                if (inputElement) {
+                    inputElement.value = deviceId || '';
+                }
+            }
+            
+            async loadAvailableFiles() {
+                try {
+                    const response = await fetch('/api/files');
+                    const data = await response.json();
+                    
+                    const fileSelect = document.getElementById('fileSelect');
+                    fileSelect.innerHTML = '';
+                    
+                    data.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.filename;
+                        option.textContent = `${file.display_name} (${file.total_records} records, ${file.success_rate} success)`;
+                        if (file.filename === data.current_file) {
+                            option.selected = true;
+                        }
+                        fileSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error loading available files:', error);
+                }
+            }
+            
+            async switchFile(filename) {
+                try {
+                    const response = await fetch('/api/switch-file', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ filename: filename })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        // Reload the page content
+                        this.currentPage = 1;
+                        this.loadResults();
+                        console.log(`Switched to ${filename}`);
+                    } else {
+                        console.error('Error switching file:', result.error);
+                        alert(`Error switching file: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error switching file:', error);
+                    alert(`Error switching file: ${error.message}`);
+                }
+            }
+
+        }
+        
+        // Initialize the visualizer when the page loads
+        let visualizer;
+        document.addEventListener('DOMContentLoaded', () => {
+            visualizer = new Visualizer();
+        });
+    </script>
+</body>
+</html>

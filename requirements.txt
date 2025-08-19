@@ -1,0 +1,9 @@
+pytesseract==0.3.10
+opencv-python==4.8.1.78
+Pillow==10.0.1
+pandas==2.1.1
+numpy==1.25.2
+openai>=1.0.0
+anthropic>=0.18.0
+google-generativeai>=0.3.0
+requests>=2.31.0
